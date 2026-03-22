@@ -247,7 +247,11 @@ const BookingPage = () => {
           </MenuItem>
         )}
 
-        <MenuItem onClick={handleCancel}>Cancel Booking</MenuItem>
+        {selected &&
+          selected.statusTrip !== "cancelled" &&
+          selected.statusTrip !== "completed" && (
+            <MenuItem onClick={handleCancel}>Cancel Booking</MenuItem>
+          )}
 
         <MenuItem onClick={() => downloadAdminPdf(selected?._id)}>
           Download Admin PDF

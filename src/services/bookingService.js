@@ -41,11 +41,45 @@ export const getBookingById = async (id) => {
 };
 
 // DOWNLOAD PDF ADMIN
-export const downloadAdminPdf = (id) => {
-  window.open(`/api/booking/download/admin-pdf/${id}`, "_blank");
+export const downloadAdminPdf = async (id) => {
+  try {
+    const res = await GET(`/booking/download/admin-pdf/${id}`, {
+      responseType: "blob", // WAJIB
+    });
+
+    const url = window.URL.createObjectURL(new Blob([res.data]));
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `booking-admin-${id}.pdf`);
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (err) {
+    console.error("Download admin PDF gagal:", err);
+    throw err.response?.data || err;
+  }
 };
 
 // DOWNLOAD PDF CUSTOMER
-export const downloadCustomerPdf = (id) => {
-  window.open(`/api/booking/download/customer-pdf/${id}`, "_blank");
+export const downloadCustomerPdf = async (id) => {
+  try {
+    const res = await GET(`/booking/download/customer-pdf/${id}`, {
+      responseType: "blob",
+    });
+
+    const url = window.URL.createObjectURL(new Blob([res.data]));
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `booking-customer-${id}.pdf`);
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (err) {
+    console.error("Download customer PDF gagal:", err);
+    throw err.response?.data || err;
+  }
 };
