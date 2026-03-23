@@ -17,10 +17,12 @@ import {
   MenuItem,
   Card,
   CardContent,
+  Box,
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 
 import Swal from "sweetalert2";
 
@@ -42,6 +44,9 @@ const PricingVehiclePage = () => {
   const [openModal, setOpenModal] = useState(false);
   const [editData, setEditData] = useState(null);
 
+  const [openDetailModal, setOpenDetailModal] = useState(false);
+  const [detailData, setDetailData] = useState(null);
+
   const [form, setForm] = useState({
     trip: "",
     vehicle: "",
@@ -58,13 +63,21 @@ const PricingVehiclePage = () => {
   };
 
   const fetchTrips = async () => {
-    const res = await getTrips();
-    setTrips(res.data);
+    try {
+      const res = await getTrips();
+      setTrips(res.data);
+    } catch {
+      Swal.fire("Error", "Failed to load trips", "error");
+    }
   };
 
   const fetchVehicles = async () => {
-    const res = await getVehicles();
-    setVehicles(res.data);
+    try {
+      const res = await getVehicles();
+      setVehicles(res.data);
+    } catch {
+      Swal.fire("Error", "Failed to load vehicles", "error");
+    }
   };
 
   useEffect(() => {
@@ -87,12 +100,22 @@ const PricingVehiclePage = () => {
     setEditData(data);
 
     setForm({
-      trip: data.trip?._id,
-      vehicle: data.vehicle?._id,
-      price: data.price,
+      trip: data.trip?._id || "",
+      vehicle: data.vehicle?._id || "",
+      price: data.price || "",
     });
 
     setOpenModal(true);
+  };
+
+  const handleOpenDetail = (data) => {
+    setDetailData(data);
+    setOpenDetailModal(true);
+  };
+
+  const handleCloseDetail = () => {
+    setOpenDetailModal(false);
+    setDetailData(null);
   };
 
   const handleChange = (field, value) => {
@@ -100,6 +123,24 @@ const PricingVehiclePage = () => {
       ...prev,
       [field]: value,
     }));
+  };
+
+  const getPassengerPriceList = (basePrice) => {
+    const priceNumber = Number(basePrice) || 0;
+
+    return Array.from({ length: 8 }, (_, index) => {
+      const passenger = index + 1;
+      let price = priceNumber;
+
+      if (passenger >= 5) {
+        price = priceNumber + (passenger - 4) * 5;
+      }
+
+      return {
+        passenger,
+        price,
+      };
+    });
   };
 
   const handleSubmit = async () => {
@@ -117,10 +158,13 @@ const PricingVehiclePage = () => {
 
       if (editData) {
         await updatePricingVehicle(editData._id, {
-          price: form.price,
+          price: Number(form.price),
         });
       } else {
-        await createPricingVehicle(form);
+        await createPricingVehicle({
+          ...form,
+          price: Number(form.price),
+        });
       }
 
       Swal.fire("Success", "Pricing saved", "success");
@@ -128,7 +172,7 @@ const PricingVehiclePage = () => {
       setOpenModal(false);
       fetchPricing();
     } catch (err) {
-      Swal.fire("Error", err.message || "Failed", "error");
+      Swal.fire("Error", err?.message || "Failed", "error");
     }
   };
 
@@ -144,18 +188,17 @@ const PricingVehiclePage = () => {
 
     try {
       await deletePricingVehicle(id);
-
       Swal.fire("Deleted!", "", "success");
-
       fetchPricing();
     } catch {
       Swal.fire("Error", "Delete failed", "error");
     }
   };
 
+  const passengerDetails = getPassengerPriceList(detailData?.price);
+
   return (
     <Container className="py-8">
-
       <div className="flex justify-between items-center mb-6">
         <Typography variant="h5" fontWeight="bold">
           Pricing Vehicle Management
@@ -168,24 +211,20 @@ const PricingVehiclePage = () => {
 
       <Card>
         <CardContent>
-
           <Table>
-
             <TableHead>
               <TableRow>
                 <TableCell>No</TableCell>
                 <TableCell>Trip</TableCell>
                 <TableCell>Vehicle</TableCell>
-                <TableCell>Price</TableCell>
-                <TableCell width="150">Action</TableCell>
+                <TableCell>Price 1-4 Passenger</TableCell>
+                <TableCell width="180">Action</TableCell>
               </TableRow>
             </TableHead>
 
             <TableBody>
-
               {pricing.map((item, index) => (
                 <TableRow key={item._id}>
-
                   <TableCell>{index + 1}</TableCell>
 
                   <TableCell>
@@ -193,15 +232,17 @@ const PricingVehiclePage = () => {
                     {item.trip?.dropoffLocation?.name}
                   </TableCell>
 
-                  <TableCell>
-                    {item.vehicle?.name}
-                  </TableCell>
+                  <TableCell>{item.vehicle?.name}</TableCell>
+
+                  <TableCell>{item.price}</TableCell>
 
                   <TableCell>
-                    {item.price}
-                  </TableCell>
-
-                  <TableCell>
+                    <IconButton
+                      color="info"
+                      onClick={() => handleOpenDetail(item)}
+                    >
+                      <VisibilityIcon />
+                    </IconButton>
 
                     <IconButton
                       color="primary"
@@ -216,42 +257,40 @@ const PricingVehiclePage = () => {
                     >
                       <DeleteIcon />
                     </IconButton>
-
                   </TableCell>
-
                 </TableRow>
               ))}
 
+              {pricing.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} align="center">
+                    No pricing data found
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
-
           </Table>
-
         </CardContent>
       </Card>
 
       <Dialog open={openModal} onClose={() => setOpenModal(false)} fullWidth>
-
         <DialogTitle>
           {editData ? "Edit Pricing" : "Create Pricing"}
         </DialogTitle>
 
         <DialogContent className="flex flex-col gap-4 mt-2">
-
           {!editData && (
             <>
               <TextField
                 select
                 label="Trip"
                 value={form.trip}
-                onChange={(e) =>
-                  handleChange("trip", e.target.value)
-                }
+                onChange={(e) => handleChange("trip", e.target.value)}
                 fullWidth
               >
                 {trips.map((trip) => (
                   <MenuItem key={trip._id} value={trip._id}>
-                    {trip.pickupLocation?.name} →{" "}
-                    {trip.dropoffLocation?.name}
+                    {trip.pickupLocation?.name} → {trip.dropoffLocation?.name}
                   </MenuItem>
                 ))}
               </TextField>
@@ -260,9 +299,7 @@ const PricingVehiclePage = () => {
                 select
                 label="Vehicle"
                 value={form.vehicle}
-                onChange={(e) =>
-                  handleChange("vehicle", e.target.value)
-                }
+                onChange={(e) => handleChange("vehicle", e.target.value)}
                 fullWidth
               >
                 {vehicles.map((v) => (
@@ -275,29 +312,74 @@ const PricingVehiclePage = () => {
           )}
 
           <TextField
-            label="Price"
+            label="Price 1-4 Passenger"
             type="number"
             value={form.price}
-            onChange={(e) =>
-              handleChange("price", e.target.value)
-            }
+            onChange={(e) => handleChange("price", e.target.value)}
             fullWidth
           />
-
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={() => setOpenModal(false)}>
-            Cancel
-          </Button>
+          <Button onClick={() => setOpenModal(false)}>Cancel</Button>
 
           <Button variant="contained" onClick={handleSubmit}>
             Save
           </Button>
         </DialogActions>
-
       </Dialog>
 
+      <Dialog
+        open={openDetailModal}
+        onClose={handleCloseDetail}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Detail Pricing Vehicle</DialogTitle>
+
+        <DialogContent dividers>
+          <Box mb={2}>
+            <Typography variant="subtitle1" fontWeight="bold">
+              Trip
+            </Typography>
+            <Typography>
+              {detailData?.trip?.pickupLocation?.name} →{" "}
+              {detailData?.trip?.dropoffLocation?.name}
+            </Typography>
+          </Box>
+
+          <Box mb={2}>
+            <Typography variant="subtitle1" fontWeight="bold">
+              Vehicle
+            </Typography>
+            <Typography>{detailData?.vehicle?.name}</Typography>
+          </Box>
+
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Passenger</TableCell>
+                <TableCell>Price</TableCell>
+              </TableRow>
+            </TableHead>
+
+            <TableBody>
+              {passengerDetails.map((item) => (
+                <TableRow key={item.passenger}>
+                  <TableCell>
+                    {item.passenger} Passenger
+                  </TableCell>
+                  <TableCell>{item.price}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={handleCloseDetail}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
