@@ -132,8 +132,10 @@ const PricingVehiclePage = () => {
       const passenger = index + 1;
       let price = priceNumber;
 
-      if (passenger >= 5) {
-        price = priceNumber + (passenger - 4) * 5;
+      // Base price berlaku untuk 1-3 passenger
+      // Mulai passenger ke-4, harga naik +5 per passenger
+      if (passenger >= 4) {
+        price = priceNumber + (passenger - 3) * 5;
       }
 
       return {
@@ -217,7 +219,7 @@ const PricingVehiclePage = () => {
                 <TableCell>No</TableCell>
                 <TableCell>Trip</TableCell>
                 <TableCell>Vehicle</TableCell>
-                <TableCell>Price 1-4 Passenger</TableCell>
+                <TableCell>Price 1-3 Passenger</TableCell>
                 <TableCell width="180">Action</TableCell>
               </TableRow>
             </TableHead>
@@ -312,7 +314,7 @@ const PricingVehiclePage = () => {
           )}
 
           <TextField
-            label="Price 1-4 Passenger"
+            label="Price 1-3 Passenger"
             type="number"
             value={form.price}
             onChange={(e) => handleChange("price", e.target.value)}
@@ -366,9 +368,7 @@ const PricingVehiclePage = () => {
             <TableBody>
               {passengerDetails.map((item) => (
                 <TableRow key={item.passenger}>
-                  <TableCell>
-                    {item.passenger} Passenger
-                  </TableCell>
+                  <TableCell>{item.passenger} Passenger</TableCell>
                   <TableCell>{item.price}</TableCell>
                 </TableRow>
               ))}
